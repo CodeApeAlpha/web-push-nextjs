@@ -6,7 +6,8 @@
     "dev": "node ./generateVapidKeys.js && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "kill": "pkill -f 'next dev' || true && pkill -f 'next start' || true && pkill -f 'node.*3001' || true && lsof -ti:3001 | xargs kill -9 2>/dev/null || true"
   },
   "dependencies": {
     "next": "14.2.5",

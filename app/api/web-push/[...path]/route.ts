@@ -1,14 +1,22 @@
 import webpush from 'web-push';
+import type { PushSubscription as WebPushSubscription } from 'web-push';
+
+const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const privateKey = process.env.NEXT_PUBLIC_VAPID_PRIVATE_KEY;
+
+if (!publicKey || !privateKey) {
+  throw new Error('VAPID keys are not configured. Run `npm run dev` to generate them.');
+}
 
 webpush.setVapidDetails(
   'mailto:mail@example.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-  process.env.NEXT_PUBLIC_VAPID_PRIVATE_KEY,
+  publicKey,
+  privateKey,
 );
 
-let subscription: PushSubscription;
+let subscription: WebPushSubscription;
 
-export async function POST(request) {
+export async function POST(request: Request) {
   const { pathname } = new URL(request.url);
   switch (pathname) {
     case '/api/web-push/subscription':
@@ -20,13 +28,13 @@ export async function POST(request) {
   }
 }
 
-async function setSubscription(request) {
-  const body: { subscription: PushSubscription } = await request.json();
+async function setSubscription(request: Request) {
+  const body: { subscription: WebPushSubscription } = await request.json();
   subscription = body.subscription;
   return new Response(JSON.stringify({ message: 'Subscription set.' }), {});
 }
 
-async function sendPush(request) {
+async function sendPush(request: Request) {
   console.log(subscription, 'subs');
   const body = await request.json();
   const pushPayload = JSON.stringify(body);
