@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
-      'https://yourdomain.com' // Replace with your production domain
+      'https://re-rent.netlify.app' // Replace with your production domain
     ];
     if (!origin || !allowedOrigins.includes(origin)) {
       return new Response('Forbidden - Invalid origin', { status: 403 });
