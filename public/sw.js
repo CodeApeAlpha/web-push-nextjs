@@ -9,30 +9,40 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      )
-    )
+    Promise.all([
+      // Clean old caches
+      caches.keys().then((keys) =>
+        Promise.all(
+          keys.map((key) => {
+            if (key !== CACHE_NAME) {
+              console.log('Deleting old cache:', key);
+              return caches.delete(key);
+            }
+          })
+        )
+      ),
+      // Clean up old cache entries (keep only last 50)
+      cleanupOldCacheEntries()
+    ])
   );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  
   const request = event.request;
   // Network-first for HTML navigations, cache-first for others
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).then((response) => {
         const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(err => console.log('Cache failed:', err));
         return response;
       }).catch(() => caches.match('/'))
     );
@@ -42,7 +52,7 @@ self.addEventListener('fetch', (event) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(err => console.log('Cache failed:', err));
           return response;
         });
       })
@@ -78,3 +88,22 @@ self.addEventListener('push', function (event) {
     }),
   );
 });
+
+// Cleanup function to limit cache size
+async function cleanupOldCacheEntries() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const keys = await cache.keys();
+    
+    if (keys.length > 50) { // Keep only 50 most recent entries
+      const keysToDelete = keys.slice(0, keys.length - 50);
+      await Promise.all(keysToDelete.map(key => {
+        console.log('Deleting old cache entry:', key.url);
+        return cache.delete(key);
+      }));
+      console.log(`Cleaned up ${keysToDelete.length} old cache entries`);
+    }
+  } catch (error) {
+    console.log('Cache cleanup failed:', error);
+  }
+}

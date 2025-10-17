@@ -48,15 +48,28 @@ async function subscribe(onSubscribe: (subs: PushSubscription | null) => void): 
 
 async function submitSubscription(subscription: PushSubscription): Promise<void> {
   const endpointUrl = '/api/web-push/subscription';
-  const res = await fetch(endpointUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ subscription }),
-  });
-  const result = await res.json();
-  console.log(result);
+  
+  try {
+    const res = await fetch(endpointUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.NEXT_PUBLIC_API_KEY || 'default-secret-key',
+      },
+      body: JSON.stringify({ subscription }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+    }
+
+    const result = await res.json();
+    console.log('Subscription submitted successfully:', result);
+  } catch (error) {
+    console.error('Failed to submit subscription:', error);
+    throw error;
+  }
 }
 
 export async function registerAndSubscribe(
@@ -79,13 +92,26 @@ export async function sendWebPush(message: string | null): Promise<void> {
     icon: 'nextjs.png',
     url: 'https://google.com',
   };
-  const res = await fetch(endPointUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(pushBody),
-  });
-  const result = await res.json();
-  console.log(result);
+  
+  try {
+    const res = await fetch(endPointUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.NEXT_PUBLIC_API_KEY || 'default-secret-key',
+      },
+      body: JSON.stringify(pushBody),
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+    }
+    
+    const result = await res.json();
+    console.log('Push sent successfully:', result);
+  } catch (error) {
+    console.error('Failed to send push notification:', error);
+    throw error; // Re-throw so the UI can handle it
+  }
 }
